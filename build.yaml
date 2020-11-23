@@ -61,7 +61,7 @@ objects:
           value: "5"
         from: 
           kind: DockerImage
-          name: registry.redhat.io/rhel8/nodejs-12
+          name: registry.redhat.io/ubi8/nginx-118
         incremental: false
       type: Source
 - apiVersion: v1
