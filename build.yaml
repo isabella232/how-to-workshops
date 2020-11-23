@@ -29,10 +29,10 @@ objects:
 - apiVersion: v1
   kind: BuildConfig
   metadata:
-    name: ${NAME}-dkr-build
+    name: ${NAME}-s2i-build
     labels:
-      app: ${NAME}-dkr
-      name: ${NAME}-dkr-build
+      app: ${NAME}-s2i
+      name: ${NAME}-s2i-build
   spec:
     successfulBuildsHistoryLimit: 1
     failedBuildsHistoryLimit: 1
@@ -148,4 +148,4 @@ parameters:
   displayName: Source Context Directory
   name: SOURCE_CONTEXT_DIR
   required: false
-  value: "msp"
+  value: "src"
