@@ -56,13 +56,11 @@ objects:
       type: Git
     strategy:
       sourceStrategy:
-        env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
+        pullSecret:
+          name: artifactory-dockercfg
         from: 
           kind: DockerImage
-          name: registry.redhat.io/ubi8/nginx-118
-        incremental: false
+          name: docker-remote.artifacts.developer.gov.bc.ca/fullboar/nginx-118
       type: Source
 - apiVersion: v1
   kind: BuildConfig
@@ -93,8 +91,8 @@ objects:
         RUN echo "Hello!"
     strategy:
       dockerStrategy:
-      #   pullSecret:
-      #     name: artifactory-dockercfg
+        # pullSecret:
+        #   name: artifactory-dockercfg
         # from: 
         #   kind: DockerImage
         #   name: docker-remote.artifacts.developer.gov.bc.ca/node:lts-alpine
