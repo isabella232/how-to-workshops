@@ -90,12 +90,12 @@ objects:
         FROM docker-remote.artifacts.developer.gov.bc.ca/node:lts-alpine
         RUN echo "Hello!"
     strategy:
-      # dockerStrategy:
-        # pullSecret:
-        #   name: artifactory-dockercfg
-        # from: 
-        #   kind: DockerImage
-        #   name: docker-remote.artifacts.developer.gov.bc.ca/node:lts-alpine
+      dockerStrategy:
+        pullSecret:
+          name: artifactory-dockercfg
+        from: 
+          kind: DockerImage
+          name: docker-remote.artifacts.developer.gov.bc.ca/node:14.15.1-alpine3.11
       type: Docker
 parameters:
 - description: |
