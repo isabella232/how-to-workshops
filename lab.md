@@ -36,6 +36,7 @@ Line 32-33 OR Line 34-36 **with** the command:
           name: docker-remote.artifacts.developer.gov.bc.ca/node:lts-alpine
       type: Docker
 ```
+Also, just making notes here :) Skipping A and B will fail with or without the command.
 
 ```console
 oc secrets link builder artifactory-dockercfg --for=pull,mount

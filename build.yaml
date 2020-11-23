@@ -31,7 +31,7 @@ objects:
   metadata:
     name: ${NAME}-s2i-build
     labels:
-      app: ${NAME}-s2i
+      app: ${NAME}
       name: ${NAME}-s2i-build
   spec:
     successfulBuildsHistoryLimit: 1
@@ -90,7 +90,7 @@ objects:
         FROM docker-remote.artifacts.developer.gov.bc.ca/node:lts-alpine
         RUN echo "Hello!"
     strategy:
-      dockerStrategy:
+      # dockerStrategy:
         # pullSecret:
         #   name: artifactory-dockercfg
         # from: 
