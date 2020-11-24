@@ -115,11 +115,26 @@ With respect to the image above:
 
 ### S2I Strategy
 
-sdsdsd
-å
-å
+When using a docker strategy `type: Source` in your **build** templates there are a few important points to note:
+
+A) Using a `pullSecret` is a very common wak to specify the credentials to use. It is the most declarative way to specify the secret as one can understand where the credentials come from by reviewing the YAML.
+
+B) When using `type: Source` you are telling OCP to build using Source To Image (S2I). Unlike a Docker build, the `from:` is required for S2I builds to tell OCP where find the builder image.
 
 ![S2I Strategy](./doc/s2i-strategy.png "S2I Strategy")
+
+While using a `pullSecret` as shown in the example above is preferred, you can also use this command to link the secret to the existing builder service account:
+
+```console
+oc secrets link builder artifactory-dockercfg --for=pull,mount
+```
+
+If you use this method you **do not** need include the `pullSecret` in your template.
+
+**Pro Tip** 🤓
+
+With respect to the image above:
+- Use either `pullSecret` **OR** `oc secrets link` but not both.
 
 ## Cleanup
 
