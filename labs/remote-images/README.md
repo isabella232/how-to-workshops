@@ -61,6 +61,15 @@ NAME                    TYPE                               DATA   AGE
 artifactory-dockercfg   kubernetes.io/dockerconfigjson     1      3d5h
 ```
 
+To see the contents of of your dockercfg secret try the following command:
+
+```console
+oc get secret/artifactory-dockercfg -o json | \
+  jq '.data.".dockerconfigjson"' | \
+  tr -d "\"" | \
+  base64 -d
+```
+
 **Pro Tip** 🤓
  
  This sample uses `docker-remote` meaning that `docker.io` is the image repository Artifactory will cache. To use other repositories setup in Artifactory just change the first component of the URL.
@@ -68,8 +77,7 @@ artifactory-dockercfg   kubernetes.io/dockerconfigjson     1      3d5h
 | Repository           | Description |
 | :------------------- | :---------- |
 | docker-remote        | Caches for `docker.io` a.k.a Docker Hub. |
-| redhat-docker-remote | Caches for the `registry.redhat.io` a.k.a RedHat container catalogue. |
-
+| redhat-docker-remote | Caches for the `registry.redhat.io` a.k.a RedHat Container Catalogue. |
 
 And for the ultimate step, you may need to add some Network Security Policy (NSP) to allow builds (S2I specifically) to reach out to the internet. Included in this lab is some basic NSP for this purpose:
 
@@ -81,31 +89,31 @@ oc process -f nsp-tools.yaml \
 
 ## Providing Credentials
 
-While the types of builds you can do is outside the scope of this lab, the main point to take away is your build manifests will vary somewhat depending on what strategy you choose. The two build strategies that can pull images from remote images repositories are `Docker` and `Source`. Regardless of which one you choose, you often need to set them up with credentials to access the remote repository; in the case of Artifactory this is required.
-
-The strategy you choose impacts how you provide the `builder` credentials so it can pull external images. Regardless of which method you choose to provide credentials, you must use one of them and it is recommended that you do **not** use both. Using both create inconsistencies in your build configuration making them more error prone and less portable.
+While the types of builds you can do is outside the scope of this lab, the main point to take away is your build manifests will vary somewhat depending on what build strategy you choose. The two strategies capable of pulling images from remote repositories are `Docker` and `Source`. Regardless of which strategy you choose, if the remote repository requires authentication then you need to set up credentials the `builder` service account can use. Also, you must use one of them and it is recommended that you do **not** use both. Using both create inconsistencies in your build configuration making them more error prone and less portable.
 
 ### Use a `pullSecret`
 
-Using a `pullSecret` is a very common wak to specify the credentials to use. It is the most declarative way to specify the secret as one can understand where the credentials come from by reviewing the YAML. It will work for both `Docker` and `Source` strategies.
+The preferred technique to provide credentials to the `builder` service account is to use a `pullSecret`. It is the most declarative way to specify the secret, as one can understand where the credentials come from by reading the YAML. Also, this technique will work for both `Docker` and `Source` strategies.
 
 ### Link Your Secrets
 
-Linking your secret to the built in `builder` service account is another acceptable way. To do this, you would use the `oc link` command as follows:
+Linking your secret to the built in `builder` service account is another acceptable way to provide credentials. To do this, use the `oc link` command as follows:
 
 ```console
 oc secrets link builder artifactory-dockercfg --for=pull,mount
 ```
 
-The `oc link` command will **only** work when used with `from` deceleration to specify a source image but this has different behavior depending on the strategy.
+The `oc link` command will **only** work when used with `from` deceleration to specify a source image, but the `from` deceleration has different behavior depending on the build strategy.
 
 ## Build Strategies
 
+The two different build strategies along with their unique behavior are outlined below.
+
 ### Docker Strategy
 
-When using `type: Docker` you are telling OCP to build using a Dockerfile; in the [sample](./build.yaml) included the Dockerfile is in-line for simplicity but its more common to keep it in your repository as a separate file.
+Use `type: Docker` to tell OCP to build an image using a Dockerfile; in the [sample](./build.yaml) included the Dockerfile is in-line for simplicity but its more common to keep this file in your repository.
 
-In the illustration below the `from` deceleration will **override** the `FROM` line of your Dockerfile. If you don't want this behavior, don't include the `from` deceleration in your YAML. As mentioned above, the `oc link` technique will **not** work without a `from` deceleration.
+As shown in the illustration below, the `from` deceleration will **override** the `FROM` line of your Dockerfile. If you don't want this behavior, don't include the `from` deceleration in your YAML. As mentioned above, the `oc link` technique will **not** work without a `from` deceleration.
 
 This is what your YAML will look like when overriding the `FROM` in a Dockerfile; you can use it with either credentials technique:
 
@@ -117,7 +125,7 @@ If you are not using an image override, then you must include a `pullSecret` dec
 
 ### S2I Strategy
 
-When using `type: Source` you are telling OCP to build using Source To Image (S2I). Unlike a Docker strategy, the `from` deceleration is required to tell OCP where find the source image. This means both the `pullSecret` or `oc link` technique will work.
+Use `type: Source` to tell OCP to build an image using Source To Image (S2I). Unlike a Docker strategy, the `from` deceleration is required to tell OCP where find the source image. This means both the `pullSecret` or `oc link` technique to provide credentials to the `builder` service account will work.
 
 This is what your YAML will look like with a `pullSecret`:
 
@@ -126,6 +134,13 @@ This is what your YAML will look like with a `pullSecret`:
 This is what your YAML will look like using `oc link`:
 
 ![S2I Strategy](./doc/s2i-strategy-lnk.png "S2I Strategy with Link")
+
+## The Lab 🧪🔬🥼
+
+// TODO:(jl) Do we want some exercises ppl can work through to solidify this lesson?
+
+ 
+<!-- oc start-build bc/hello-puller-dkr-build --follow -->
 
 ## Cleanup
 
@@ -140,14 +155,3 @@ and
 ```console
 oc delete secret/artifactory-dockercfg
 ```
-
--------------------
-
-oc start-build bc/hello-puller-dkr-build --follow
-
-
-oc get secret/artifactory-dockercfg -o json | jq '.data.".dockerconfigjson"' |tr -d "\"" | base64 -d
-
-oc secrets link builder artifactory-dockercfg --for=pull
-oc secrets link default artifactory-dockercfg --for=pull
-
