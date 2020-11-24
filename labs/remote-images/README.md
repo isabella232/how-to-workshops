@@ -120,7 +120,19 @@ sdsdsd
 
 ![S2I Strategy](./doc/s2i-strategy.png "S2I Strategy")
 
-##
+## Cleanup
+
+Once you're done with this lab, you can remove all artifacts with:
+
+```console
+oc delete all -l "app=hello-puller"
+```
+
+and
+
+```console
+oc delete secret/artifactory-dockercfg
+```
 
 
 
