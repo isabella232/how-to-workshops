@@ -33,8 +33,53 @@ deployer-token-gn7qs                 kubernetes.io/service-account-token   4    
 deployer-token-q82hr                 kubernetes.io/service-account-token   4      6d22h
 ```
 
-- Create a `docker` secret for pulling images
-- Setting up NSP so that build images can reach outside of the cluster; in the case of S2I builds this is needed to fetch the source code.
+You can view the secret with additional `oc` commands or directs in the web UI. I generally don't print or paste secret directly in the terminal because they get stuck in the shell's history. Here are two command to bypass copy-and-paste and put them into env variables:
+
+First the artifactory password:
+```console
+export AFPWD=$(oc get secret/artifactory-serviceaccount-default -o json | jq '.data.password' |  tr -d "\"" | base64 -d)
+```
+
+Then the artifactory username:
+```console
+export AFUSR=$(oc get secret/artifactory-serviceaccount-default -o json | jq '.data.username' |  tr -d "\"" | base64 -d)
+```
+
+The penultimate 🧐 step is to create a specially formatted (docker config format) secret that "things" can use to pull images:
+
+```console
+oc create secret docker-registry artifactory-dockercfg \
+  --docker-server=docker-remote.artifacts.developer.gov.bc.ca \
+  --docker-username=$AFUSR \
+  --docker-password=$AFPWD \
+  --docker-email=unused
+```
+
+You can varry the name of the secret as you like, in this example the secret will be called `artifactory-dockercfg`:
+
+```console
+➜  openshift-workshop git:(master) ✗ oc get secrets
+NAME                    TYPE                               DATA   AGE
+artifactory-dockercfg   kubernetes.io/dockerconfigjson     1      3d5h
+```
+
+**Pro Tip** 🤓
+ 
+ This sample uses `docker-remote` meaning that `docker.io` is the image repository Artifactory will cache. To use other repositories setup in Artifactory just change the first component of the URL.
+
+| Repository           | Description |
+| :------------------- | :---------- |
+| docker-remote        | Caches for `docker.io` a.k.a Docker Hub. |
+| redhat-docker-remote | Caches for the `registry.redhat.io` a.k.a RedHat container catalogue. |
+
+
+And for the ultimate step, you may need to add some Network Security Policy (NSP) to allow builds (S2I specifically) to reach out to the internet. Included in this lab is some basic NSP for this purpose:
+
+```console
+oc process -f nsp-tools.yaml \
+  -p NAMESPACE=$(oc project --short) | \
+  oc create -f -
+```
 
 ### Docker Strategy
 
@@ -45,10 +90,9 @@ deployer-token-q82hr                 kubernetes.io/service-account-token   4    
 ![S2I Strategy](./doc/s2i-strategy.png "S2I Strategy")
 
 ##
-10666  export AFPWD=$(oc get secret/artifactory-serviceaccount-default -o json | jq '.data.password' |  tr -d "\"" | base64 -d)
-10667  export AFUSR=$(oc get secret/artifactory-serviceaccount-default -o json | jq '.data.username' |  tr -d "\"" | base64 -d)
 
-oc create secret docker-registry artifactory-dockercfg --docker-server=docker-remote.artifacts.developer.gov.bc.ca --docker-username=$AFUSR --docker-password=$AFPWD --docker-email=unused
+
+
 
 oc get secret/artifactory-dockercfg -o json | jq '.data.".dockerconfigjson"' |tr -d "\"" | base64 -d
 
