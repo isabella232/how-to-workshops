@@ -6,9 +6,7 @@ This lab will build ones understanding and skills using remote images. You will 
 
 ## Prerequisite(s)
 
-On our OCP4 clusters and going forward you are automatically provisioned Artifactory credentials when your `tools` namespace is created. 
-
-To find them, list your secrets and pick out the one with `artifactory` in the name:
+On our OCP4 clusters and going forward you are automatically provisioned Artifactory credentials when your `tools` namespace is created. To find them, list your secrets and pick out the one with `artifactory` in the name:
 
 You'll find one with the name:
 
@@ -81,60 +79,53 @@ oc process -f nsp-tools.yaml \
   oc create -f -
 ```
 
-## Build Strategies
+## Providing Credentials
 
-While the types of builds you can do is outside the scope of this lab the main point to take away is your build manifests will vary somewhat depending on what strategy you choose.
+While the types of builds you can do is outside the scope of this lab, the main point to take away is your build manifests will vary somewhat depending on what strategy you choose. The two build strategies that can pull images from remote images repositories are `Docker` and `Source`. Regardless of which one you choose, you often need to set them up with credentials to access the remote repository; in the case of Artifactory this is required.
+
+The strategy you choose impacts how you provide the `builder` credentials so it can pull external images. Regardless of which method you choose to provide credentials, you must use one of them and it is recommended that you do **not** use both. Using both create inconsistencies in your build configuration making them more error prone and less portable.
+
+### Use a `pullSecret`
+
+Using a `pullSecret` is a very common wak to specify the credentials to use. It is the most declarative way to specify the secret as one can understand where the credentials come from by reviewing the YAML. It will work for both `Docker` and `Source` strategies.
+
+### Link Your Secrets
+
+Linking your secret to the built in `builder` service account is another acceptable way. To do this, you would use the `oc link` command as follows:
+
+```console
+oc secrets link builder artifactory-dockercfg --for=pull,mount
+```
+
+The `oc link` command will **only** work when used with `from` deceleration to specify a source image but this has different behavior depending on the strategy.
+
+## Build Strategies
 
 ### Docker Strategy
 
-When using a docker strategy `type: Docker` in your **build** templates there are a few important points to note:
+When using `type: Docker` you are telling OCP to build using a Dockerfile; in the [sample](./build.yaml) included the Dockerfile is in-line for simplicity but its more common to keep it in your repository as a separate file.
 
-A) Using a `pullSecret` is a very common wak to specify the credentials to use. It is the most declarative way to specify the secret as one can understand where the credentials come from by reviewing the YAML.
+In the illustration below the `from` deceleration will **override** the `FROM` line of your Dockerfile. If you don't want this behavior, don't include the `from` deceleration in your YAML. As mentioned above, the `oc link` technique will **not** work without a `from` deceleration.
 
-B) When using `type: Docker` you are telling OCP to build using a Dockerfile; in my [sample](./build.yaml) I've embedded the Dockerfile in line for simplicity but its more common to keep it in your repository as a separate file.
+This is what your YAML will look like when overriding the `FROM` in a Dockerfile; you can use it with either credentials technique:
 
-In the image below the `from:` is used to override the `FROM` line of your Dockerfile. If you don't want this behavior, don't include the `from:` in your YAML.
+![Docker Override](./doc/docker-override.png "Docker Override")
 
-![Docker Strategy](./doc/docker-strategy.png "Docker Strategy")
+If you are not using an image override, then you must include a `pullSecret` deceleration:
 
-While using a `pullSecret` as shown in the example above is preferred, you can also use this command to link the secret to the existing builder service account:
-
-```console
-oc secrets link builder artifactory-dockercfg --for=pull,mount
-```
-
-If you use this method you **do not** need include the `pullSecret` in your template.
-
-**Pro Tip** 🤓
-
-With respect to the image above:
-- Use either `pullSecret` **OR** `oc secrets link` but not both;
-- Use `from:` to override the `FROM` in a Dockerfile.
-- If you **do not** use `from:`, then you **must** use a `pullSecret`.
-- Skipping both a `pullSecret` and `from:` with always cause your build to fail if authentication is required to pull images.
+![Docker](./doc/docker-stragegy-sec.png "Docker No Override")
 
 ### S2I Strategy
 
-When using a docker strategy `type: Source` in your **build** templates there are a few important points to note:
+When using `type: Source` you are telling OCP to build using Source To Image (S2I). Unlike a Docker strategy, the `from` deceleration is required to tell OCP where find the source image. This means both the `pullSecret` or `oc link` technique will work.
 
-A) Using a `pullSecret` is a very common wak to specify the credentials to use. It is the most declarative way to specify the secret as one can understand where the credentials come from by reviewing the YAML.
+This is what your YAML will look like with a `pullSecret`:
 
-B) When using `type: Source` you are telling OCP to build using Source To Image (S2I). Unlike a Docker build, the `from:` is required for S2I builds to tell OCP where find the builder image.
+![S2I Strategy](./doc/s2i-strategy-sec.png "S2I Strategy with Secret")
 
-![S2I Strategy](./doc/s2i-strategy.png "S2I Strategy")
+This is what your YAML will look like using `oc link`:
 
-While using a `pullSecret` as shown in the example above is preferred, you can also use this command to link the secret to the existing builder service account:
-
-```console
-oc secrets link builder artifactory-dockercfg --for=pull,mount
-```
-
-If you use this method you **do not** need include the `pullSecret` in your template.
-
-**Pro Tip** 🤓
-
-With respect to the image above:
-- Use either `pullSecret` **OR** `oc secrets link` but not both.
+![S2I Strategy](./doc/s2i-strategy-lnk.png "S2I Strategy with Link")
 
 ## Cleanup
 
@@ -160,52 +151,3 @@ oc get secret/artifactory-dockercfg -o json | jq '.data.".dockerconfigjson"' |tr
 oc secrets link builder artifactory-dockercfg --for=pull
 oc secrets link default artifactory-dockercfg --for=pull
 
-now update docker.io to docker-remote.artifacts.developer.gov.bc.ca
-
-```yaml
-    strategy:
-      dockerStrategy:
-        pullSecret:
-          name: artifactory-dockercfg
-```
-
-
-For a `type: Docker` build, you need either:
-Line 32-33 OR Line 34-36 **with** the command:
-
-```yaml
-    source:
-      type: Dockerfile
-      dockerfile: |-
-        FROM docker-remote.artifacts.developer.gov.bc.ca/node:lts-alpine
-        RUN echo "Hello!"
-    strategy:
-      dockerStrategy:
-        pullSecret:
-          name: artifactory-dockercfg
-        from: 
-          kind: DockerImage
-          name: docker-remote.artifacts.developer.gov.bc.ca/node:lts-alpine
-      type: Docker
-```
-Also, just making notes here :) Skipping A and B will fail with or without the command.
-
-```console
-oc secrets link builder artifactory-dockercfg --for=pull,mount
-```
-or
-```console
-oc secrets link builder artifactory-dockercfg
-```
-
-For a `type: Source` you always need 55-57; line 53-54 without the command or
-skip like 53-54 and use the command.
-
-```yaml
-      sourceStrategy:
-        # pullSecret:
-        #   name: artifactory-dockercfg
-        from: 
-          kind: DockerImage
-          name: docker-remote.artifacts.developer.gov.bc.ca/fullboar/nginx-118
-```
