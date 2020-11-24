@@ -100,17 +100,18 @@ In the image below the `from:` is used to override the `FROM` line of your Docke
 While using a `pullSecret` as shown in the example above is preferred, you can also use this command to link the secret to the existing builder service account:
 
 ```console
-oc secrets link builder artifactory-dockercfg --for=pull
+oc secrets link builder artifactory-dockercfg --for=pull,mount
 ```
 
 If you use this method you **do not** need include the `pullSecret` in your template.
 
 **Pro Tip** 🤓
 
-With respect to the image above, you can:
-- Use a `pullSecret` **OR** `oc secrets link`; both are not required.
-- Use (B) alone with the command `oc secrets link`; its preferred to use `pullSecret`.
-- Skip (A) and (B) causing your build(s) to fail without the command `oc secrets link`.
+With respect to the image above:
+- Use either `pullSecret` **OR** `oc secrets link` but not both;
+- Use `from:` to override the `FROM` in a Dockerfile.
+- If you **do not** use `from:`, then you **must** use a `pullSecret`.
+- Skipping both a `pullSecret` and `from:` with always cause your build to fail if authentication is required to pull images.
 
 ### S2I Strategy
 
@@ -134,7 +135,9 @@ and
 oc delete secret/artifactory-dockercfg
 ```
 
+-------------------
 
+oc start-build bc/hello-puller-dkr-build --follow
 
 
 oc get secret/artifactory-dockercfg -o json | jq '.data.".dockerconfigjson"' |tr -d "\"" | base64 -d
