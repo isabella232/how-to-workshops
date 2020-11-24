@@ -4,7 +4,7 @@ This lab will build ones understanding and skills using remote images. You will 
 
 # Using Remote Images in a Build
 
-### Prerequisite(s)
+## Prerequisite(s)
 
 On our OCP4 clusters and going forward you are automatically provisioned Artifactory credentials when your `tools` namespace is created. 
 
@@ -81,11 +81,42 @@ oc process -f nsp-tools.yaml \
   oc create -f -
 ```
 
+## Build Strategies
+
+While the types of builds you can do is outside the scope of this lab the main point to take away is your build manifests will vary somewhat depending on what strategy you choose.
+
 ### Docker Strategy
+
+When using a docker strategy `type: Docker` in your **build** templates there are a few important points to note:
+
+A) Using a `pullSecret` is a very common wak to specify the credentials to use. It is the most declarative way to specify the secret as one can understand where the credentials come from by reviewing the YAML.
+
+B) When using `type: Docker` you are telling OCP to build using a Dockerfile; in my [sample](./build.yaml) I've embedded the Dockerfile in line for simplicity but its more common to keep it in your repository as a separate file.
+
+In the image below the `from:` is used to override the `FROM` line of your Dockerfile. If you don't want this behavior, don't include the `from:` in your YAML.
 
 ![Docker Strategy](./doc/docker-strategy.png "Docker Strategy")
 
+While using a `pullSecret` as shown in the example above is preferred, you can also use this command to link the secret to the existing builder service account:
+
+```console
+oc secrets link builder artifactory-dockercfg --for=pull
+```
+
+If you use this method you **do not** need include the `pullSecret` in your template.
+
+**Pro Tip** 🤓
+
+With respect to the image above, you can:
+- Use a `pullSecret` **OR** `oc secrets link`; both are not required.
+- Use (B) alone with the command `oc secrets link`; its preferred to use `pullSecret`.
+- Skip (A) and (B) causing your build(s) to fail without the command `oc secrets link`.
+
 ### S2I Strategy
+
+sdsdsd
+å
+å
 
 ![S2I Strategy](./doc/s2i-strategy.png "S2I Strategy")
 
