@@ -35,12 +35,18 @@ You can view the secret with additional `oc` commands or directs in the web UI. 
 
 First the artifactory password:
 ```console
-export AFPWD=$(oc get secret/artifactory-serviceaccount-default -o json | jq '.data.password' |  tr -d "\"" | base64 -d)
+export AFPWD=$(oc get secret/artifactory-serviceaccount-default -o json | \
+  jq '.data.password' | \
+  tr -d "\"" | \
+  base64 -d)
 ```
 
 Then the artifactory username:
 ```console
-export AFUSR=$(oc get secret/artifactory-serviceaccount-default -o json | jq '.data.username' |  tr -d "\"" | base64 -d)
+export AFUSR=$(oc get secret/artifactory-serviceaccount-default -o json | \
+  jq '.data.username' |  \
+  tr -d "\"" | \
+  base64 -d)
 ```
 
 The penultimate 🧐 step is to create a specially formatted (docker config format) secret that "things" can use to pull images:
